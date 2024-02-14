@@ -11,21 +11,12 @@
 
 This is a repo showing how to make an NFT Marketplace from scratch!
 
-Huge Shoutout to [Matt Durkin](https://twitter.com/mdurkin92) for his help on this repo!
-
-[Full Repo](https://github.com/smartcontractkit/full-blockchain-solidity-course-js)
-
-- [Hardhat NFT Marketplace](#hardhat-nft-marketplace)
-- [Getting Started](#getting-started)
-  - [Requirements](#requirements)
-  - [Quickstart](#quickstart)
-  - [Typescript](#typescript)
-    - [Optional Gitpod](#optional-gitpod)
-- [Usage](#usage)
-  - [Testing](#testing)
-- [Deployment to a testnet or mainnet](#deployment-to-a-testnet-or-mainnet)
-- [Thank you!](#thank-you)
-
+1. Create a decentralized NFT Marketplace
+  1. `listItem`: List NFTs on the marketplace
+  2. `buyItem`: Buy the NFTs
+  3. `cancelItem`: Cancel a listing
+  4. `updateListing`: Update Price
+  5. `withdrawProceeds`: Withdraw payment for my bought NFTs
 
 # Getting Started
 

@@ -16,6 +16,7 @@ const { developmentChains } = require("../../helper-hardhat-config")
               await deployments.fixture(["all"])
               nftMarketplaceContract = await ethers.getContract("NftMarketplace")
               nftMarketplace = nftMarketplaceContract.connect(deployer)
+              nftMarketplace_user = nftMarketplaceContract.connect(user)
               basicNftContract = await ethers.getContract("BasicNft")
               basicNft = basicNftContract.connect(deployer)
               await basicNft.mintNft()
@@ -30,10 +31,10 @@ const { developmentChains } = require("../../helper-hardhat-config")
               })
               it("exclusively items that haven't been listed", async function () {
                   await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
-                  const error = `AlreadyListed("${basicNft.address}", ${TOKEN_ID})`
                   //   await expect(
                   //       nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
                   //   ).to.be.revertedWith("AlreadyListed")
+                  const error = `AlreadyListed("${basicNft.address}", ${TOKEN_ID})`
                   await expect(
                       nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
                   ).to.be.revertedWith(error)
@@ -58,11 +59,11 @@ const { developmentChains } = require("../../helper-hardhat-config")
                   assert(listing.seller.toString() == deployer.address)
               })
               it("reverts if the price be 0", async () => {
-                const ZERO_PRICE = ethers.utils.parseEther("0")
-                await expect(
-                    nftMarketplace.listItem(basicNft.address, TOKEN_ID, ZERO_PRICE)
-                ).revertedWithCustomError(nftMarketplace, "NftMarketplace__PriceMustBeAboveZero")
-        })
+                  const ZERO_PRICE = ethers.utils.parseEther("0")
+                  await expect(
+                      nftMarketplace.listItem(basicNft.address, TOKEN_ID, ZERO_PRICE)
+                  ).to.be.revertedWith("PriceMustBeAboveZero")
+              })
           })
           describe("cancelListing", function () {
               it("reverts if there is no listing", async function () {
@@ -97,8 +98,14 @@ const { developmentChains } = require("../../helper-hardhat-config")
               it("reverts if the price isnt met", async function () {
                   await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
                   await expect(
-                      nftMarketplace.buyItem(basicNft.address, TOKEN_ID)
+                      nftMarketplace_user.buyItem(basicNft.address, TOKEN_ID) // only user can but the nft (owner can't)
                   ).to.be.revertedWith("PriceNotMet")
+              })
+              it("revert if the owner buys the NFT he owns", async function () {
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+                  await expect(
+                      nftMarketplace.buyItem(basicNft.address, TOKEN_ID) // deployer(lister) call buyItem
+                  ).to.be.revertedWith("NotOwner")
               })
               it("transfers the nft to the buyer and updates internal proceeds record", async function () {
                   await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
@@ -126,7 +133,9 @@ const { developmentChains } = require("../../helper-hardhat-config")
               it("reverts if new price is 0", async function () {
                   const updatedPrice = ethers.utils.parseEther("0")
                   await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
-                  await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, updatedPrice)).to.be.revertedWith("PriceMustBeAboveZero")
+                  await expect(
+                      nftMarketplace.updateListing(basicNft.address, TOKEN_ID, updatedPrice)
+                  ).to.be.revertedWith("PriceMustBeAboveZero")
               })
               it("updates the price of the item", async function () {
                   const updatedPrice = ethers.utils.parseEther("0.2")
